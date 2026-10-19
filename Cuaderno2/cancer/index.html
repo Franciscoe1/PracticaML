@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evaluación experimental | Cáncer de mama</title>
+<style>
+:root{--bg:#edf4f8;--white:#fff;--ink:#17324d;--muted:#536a80;--blue:#1769aa;--border:#d4e1eb;--green:#e8f5ef;--red:#fff0ed;--yellow:#fff5dc}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Segoe UI",Arial,sans-serif}
+header{background:linear-gradient(115deg,#123f68,#1769aa);color:white;padding:25px max(22px,calc((100% - 1120px)/2))}
+header small{opacity:.85;letter-spacing:.08em;text-transform:uppercase}h1{margin:5px 0;font-size:clamp(1.5rem,3vw,2.1rem)}header p{margin:0;opacity:.9}
+main{max-width:1120px;margin:28px auto;padding:0 18px 35px}.intro{color:var(--muted);margin-bottom:18px}
+.layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,.8fr);gap:20px;align-items:start}
+.card{background:white;border:1px solid var(--border);border-radius:18px;padding:25px;box-shadow:0 12px 34px #1b3f5b12}
+h2{margin:0 0 7px;font-size:1.25rem}.sub{margin:0 0 20px;color:var(--muted);font-size:.95rem}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px 14px}label{display:block;margin-bottom:6px;color:#104b7b;font-size:.88rem;font-weight:700}
+input{width:100%;border:1px solid #bdcede;border-radius:9px;padding:12px 11px;color:var(--ink);background:#fbfdff;font:inherit;outline:none}
+input:focus{border-color:var(--blue);box-shadow:0 0 0 3px #1769aa1f}
+.buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}button{border:0;border-radius:9px;padding:12px 16px;cursor:pointer;font:inherit;font-weight:700}
+button:disabled{opacity:.6;cursor:wait}.primary{background:var(--blue);color:white}.secondary{background:#e8eff5;color:var(--ink)}
+.result-card{position:sticky;top:18px}.result-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.status{background:#e7eef5;color:var(--muted);border-radius:999px;padding:5px 10px;font-size:.78rem;font-weight:700}
+.result-box{margin-top:18px;border-radius:13px;padding:20px;background:#f2f6fa;border:1px solid var(--border)}.result-box.ok{background:var(--green);border-color:#b7e2d1}.result-box.alert{background:var(--red);border-color:#f2c4bc}
+.result-label{color:var(--muted);font-size:.84rem;font-weight:700}.result-main{margin:5px 0 3px;font-size:1.4rem;font-weight:800}.classification{margin:0;font-weight:700}
+.prob-list{margin-top:17px;display:grid;gap:13px}.prob-head{display:flex;justify-content:space-between;gap:10px;font-size:.9rem}.bar{height:8px;background:#dce5ec;border-radius:20px;overflow:hidden;margin-top:5px}.bar span{display:block;height:100%;width:0;background:var(--blue);border-radius:20px;transition:width .3s}
+.note{margin-top:17px;padding:13px 14px;border-left:4px solid #d69a22;background:var(--yellow);color:#6f5218;border-radius:7px;font-size:.83rem}.message{min-height:24px;margin:14px 0 0;color:var(--muted);font-size:.9rem}.foot{text-align:center;color:var(--muted);font-size:.82rem;margin-top:22px}
+@media(max-width:780px){.layout{grid-template-columns:1fr}.result-card{position:static}}@media(max-width:520px){.card{padding:18px}.fields{grid-template-columns:1fr}.buttons button{width:100%}}
+</style>
+</head>
+<body>
+<header><small>Proyecto académico · Machine Learning</small><h1>Evaluación experimental de características</h1><p>Modelo de clasificación de cáncer de mama · 10 variables seleccionadas</p></header>
+<main>
+<p class="intro">Ingresa los valores numéricos de las 10 características. La API analizará los datos con el modelo reentrenado.</p>
+<div class="layout">
+<section class="card"><h2>01 · Datos de entrada</h2><p class="sub">Usa punto o coma decimal. Los valores de ejemplo son demostrativos y puedes cambiarlos.</p>
+<form id="formulario"><div class="fields" id="campos"></div><div class="buttons">
+<button class="primary" type="submit" id="btnPredecir">Realizar consulta</button><button class="secondary" type="button" id="btnEjemplo">Cargar ejemplo</button><button class="secondary" type="button" id="btnLimpiar">Limpiar campos</button>
+</div></form><p class="message" id="mensaje" role="status">Conecta con la API para comenzar.</p></section>
+<aside class="card result-card"><div class="result-top"><h2>02 · Resultado</h2><span class="status" id="estado">En espera</span></div>
+<div class="result-box" id="cajaResultado" aria-live="polite"><div class="result-label">Resultado de la consulta</div><p class="result-main" id="resultadoPrincipal">Sin consulta</p><p class="classification" id="clasificacion">Clasificación: —</p></div>
+<div class="prob-list"><div><div class="prob-head"><span>Estimación para benigno</span><strong id="benignoPct">—</strong></div><div class="bar"><span id="benignoBar"></span></div></div>
+<div><div class="prob-head"><span>Estimación para maligno</span><strong id="malignoPct">—</strong></div><div class="bar"><span id="malignoBar"></span></div></div></div>
+<div class="note">Este prototipo es únicamente académico. El resultado no constituye un diagnóstico médico ni debe utilizarse para tomar decisiones clínicas.</div>
+</aside></div>
+<script>
+const API_URL="http://127.0.0.1:8000";
+const ejemplos={"worst concave points":0.2654,"worst perimeter":184.6,"mean concave points":0.1471,"worst radius":25.38,"mean perimeter":122.8,"worst area":2019,"mean radius":17.99,"mean area":1001,"mean concavity":0.3001,"worst concavity":0.7119};
+const etiquetas={"worst concave points":"Puntos cóncavos máximos","worst perimeter":"Perímetro máximo","mean concave points":"Puntos cóncavos medios","worst radius":"Radio máximo","mean perimeter":"Perímetro medio","worst area":"Área máxima","mean radius":"Radio medio","mean area":"Área media","mean concavity":"Concavidad media","worst concavity":"Concavidad máxima"};
+const campos=document.getElementById("campos"),form=document.getElementById("formulario"),mensaje=document.getElementById("mensaje"),btn=document.getElementById("btnPredecir");
+for(const [nombre,valor] of Object.entries(ejemplos)){const grupo=document.createElement("div"),id="campo-"+nombre.replaceAll(" ","-"),label=document.createElement("label"),input=document.createElement("input");label.htmlFor=id;label.textContent=etiquetas[nombre];input.id=id;input.name=nombre;input.type="text";input.inputMode="decimal";input.autocomplete="off";input.required=true;input.value=valor;input.placeholder="Escribe un valor";grupo.append(label,input);campos.append(grupo)}
+function numero(v){let s=String(v).trim().replace(/\s/g,"");if(s.includes(",")&&s.includes(".")){if(s.lastIndexOf(",")>s.lastIndexOf("."))s=s.replace(/\./g,"").replace(",",".");else s=s.replace(/,/g,"")}else s=s.replace(",",".");const n=Number(s);if(!Number.isFinite(n))throw Error("Revisa que todos los campos tengan valores numéricos válidos.");return n}
+function porcentaje(tipo,v){const n=Math.max(0,Math.min(100,v));document.getElementById(tipo+"Pct").textContent=n.toFixed(2)+"%";document.getElementById(tipo+"Bar").style.width=n+"%"}
+function error(texto){document.getElementById("estado").textContent="Error";document.getElementById("cajaResultado").className="result-box";document.getElementById("resultadoPrincipal").textContent="No se pudo consultar";document.getElementById("clasificacion").textContent="Clasificación: —";porcentaje("benigno",0);porcentaje("maligno",0);mensaje.textContent=texto}
+form.addEventListener("submit",async e=>{e.preventDefault();let parametros={};try{for(const nombre of Object.keys(ejemplos))parametros[nombre]=numero(form.elements.namedItem(nombre).value)}catch(err){error(err.message);return}
+btn.disabled=true;document.getElementById("estado").textContent="Consultando";mensaje.textContent="Enviando las 10 características al modelo...";
+try{const r=await fetch(API_URL+"/predecir",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({parametros})});const d=await r.json();if(!r.ok)throw Error(typeof d.detail==="string"?d.detail:JSON.stringify(d.detail||d));
+const maligno=d.prediccion===1||String(d.clasificacion).toUpperCase()==="MALIGNA";document.getElementById("estado").textContent="Consulta completada";document.getElementById("cajaResultado").className="result-box "+(maligno?"alert":"ok");document.getElementById("resultadoPrincipal").textContent=d.mensaje||(maligno?"El paciente tiene cáncer":"El paciente no tiene cáncer");document.getElementById("clasificacion").textContent="Clasificación: "+(d.clasificacion||(maligno?"MALIGNA":"BENIGNA"));const p=d.probabilidades_estimadas||{};porcentaje("benigno",Number(p.Benigno??0)*100);porcentaje("maligno",Number(p.Maligno??0)*100);mensaje.textContent=d.advertencia||"Consulta completada. Resultado experimental."
+}catch(err){error("No se pudo conectar con la API. Comprueba que esté activa en http://127.0.0.1:8000. Detalle: "+err.message)}finally{btn.disabled=false}});
+document.getElementById("btnEjemplo").addEventListener("click",()=>{for(const [n,v] of Object.entries(ejemplos))form.elements.namedItem(n).value=String(v);mensaje.textContent="Ejemplo cargado. Pulsa “Realizar consulta” para enviarlo al modelo."});
+document.getElementById("btnLimpiar").addEventListener("click",()=>{for(const n of Object.keys(ejemplos))form.elements.namedItem(n).value="";document.getElementById("estado").textContent="En espera";document.getElementById("cajaResultado").className="result-box";document.getElementById("resultadoPrincipal").textContent="Sin consulta";document.getElementById("clasificacion").textContent="Clasificación: —";porcentaje("benigno",0);porcentaje("maligno",0);mensaje.textContent="Formulario limpio. Ingresa los 10 valores."});
+</script>
+</body>
+</html>

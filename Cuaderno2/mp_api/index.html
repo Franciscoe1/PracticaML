@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neurona MP - Breast Cancer</title>
+<style>
+  :root { --bg:#f5f6f8; --card:#fff; --text:#1d2330; --muted:#667085; --brand:#e5283c; --ok:#1a8f4c; --bad:#c62828; --line:#dde1e8; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14171d; --card:#1e232c; --text:#e8eaee; --muted:#9aa3b2; --line:#323a47; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, Segoe UI, Arial, sans-serif; background:var(--bg); color:var(--text); }
+  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; font-size: .9rem; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .info { display:flex; flex-wrap:wrap; gap:16px; font-size:.9rem; }
+  .info b { display:block; font-size:1.2rem; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap:10px; }
+  label { font-size:.75rem; color:var(--muted); display:block; margin-bottom:2px; }
+  input { width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); font-size:.9rem; }
+  .actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+  button { padding:9px 16px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--text); cursor:pointer; font-size:.9rem; }
+  button.primary { background:var(--brand); border-color:var(--brand); color:#fff; font-weight:600; }
+  #result { display:none; text-align:center; }
+  #result .label { font-size:1.8rem; font-weight:700; margin:4px 0; }
+  .benign { color:var(--ok); } .malignant { color:var(--bad); }
+  .note { font-size:.8rem; color:var(--muted); margin-top:20px; }
+  #error { color:var(--bad); margin-top:10px; display:none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Neurona de McCulloch y Pitts</h1>
+  <p class="sub">Clasificador Breast Cancer Wisconsin · Instituto Superior Tecnológico Quito</p>
+
+  <div class="card">
+    <label for="api">URL de la API</label>
+    <input id="api" value="http://127.0.0.1:8000">
+    <div class="info" id="info" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <div class="grid" id="grid"></div>
+    <div class="actions">
+      <button class="primary" id="btnPredict">Predecir</button>
+      <button id="btnMal">Ejemplo maligno</button>
+      <button id="btnBen">Ejemplo benigno</button>
+      <button id="btnClear">Limpiar</button>
+    </div>
+    <div id="error"></div>
+  </div>
+
+  <div class="card" id="result">
+    <div class="sub">Resultado</div>
+    <div class="label" id="resLabel"></div>
+    <div id="resDetail" class="sub"></div>
+  </div>
+
+  <p class="note">Proyecto académico. No sirve para diagnóstico médico.</p>
+</main>
+
+<script>
+const MAL = [17.99,10.38,122.8,1001.0,0.1184,0.2776,0.3001,0.1471,0.2419,0.07871,1.095,0.9053,8.589,153.4,0.006399,0.04904,0.05373,0.01587,0.03003,0.006193,25.38,17.33,184.6,2019.0,0.1622,0.6656,0.7119,0.2654,0.4601,0.1189];
+const BEN = [13.54,14.36,87.46,566.3,0.09779,0.08129,0.06664,0.04781,0.1885,0.05766,0.2699,0.7886,2.058,23.56,0.008462,0.0146,0.02387,0.01315,0.0198,0.0023,15.11,19.26,99.7,711.2,0.144,0.1773,0.239,0.1288,0.2977,0.07259];
+const $ = id => document.getElementById(id);
+const base = () => $('api').value.replace(/\/+$/, '');
+let inputs = [];
+
+function showError(msg) { $('error').textContent = msg; $('error').style.display = msg ? 'block' : 'none'; }
+function fill(values) { inputs.forEach((el, i) => el.value = values[i]); }
+
+async function init() {
+  showError('');
+  try {
+    const [feat, info] = await Promise.all([
+      fetch(base() + '/features').then(r => r.json()),
+      fetch(base() + '/info').then(r => r.json())
+    ]);
+    $('grid').innerHTML = '';
+    inputs = feat.features.map(name => {
+      const d = document.createElement('div');
+      d.innerHTML = `<label>${name}</label><input type="number" step="any">`;
+      $('grid').appendChild(d);
+      return d.querySelector('input');
+    });
+    $('info').innerHTML =
+      `<div><b>${info.threshold}</b>Threshold</div>` +
+      `<div><b>${(info.test_accuracy * 100).toFixed(1)}%</b>Exactitud (test)</div>` +
+      `<div><b>${info.n_features}</b>Características</div>`;
+  } catch (e) {
+    showError('No se pudo conectar con la API. Verifica que uvicorn esté corriendo y la URL sea correcta.');
+  }
+}
+
+async function predict() {
+  showError('');
+  const features = inputs.map(el => parseFloat(el.value));
+  if (!inputs.length || features.some(isNaN)) { showError('Completa los 30 valores (o usa un ejemplo).'); return; }
+  try {
+    const r = await fetch(base() + '/predict', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ features })
+    });
+    if (!r.ok) throw new Error('Error ' + r.status);
+    const d = await r.json();
+    $('result').style.display = 'block';
+    $('resLabel').textContent = d.label === 'benign' ? 'Benigno' : 'Maligno';
+    $('resLabel').className = 'label ' + d.label;
+    $('resDetail').textContent = `Suma de la neurona: ${d.neuron_sum} · Threshold: ${d.threshold}`;
+  } catch (e) { showError('Fallo la predicción: ' + e.message); }
+}
+
+$('btnPredict').onclick = predict;
+$('btnMal').onclick = () => fill(MAL);
+$('btnBen').onclick = () => fill(BEN);
+$('btnClear').onclick = () => { fill(Array(inputs.length).fill('')); $('result').style.display = 'none'; };
+$('api').onchange = init;
+init();
+</script>
+</body>
+</html>

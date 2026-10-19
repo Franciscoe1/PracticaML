@@ -1,0 +1,443 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistente de análisis mamario</title>
+
+<style>
+        * { box-sizing: border-box; }
+        :root {
+            --rosa: #2563eb;
+            --rosa-oscuro: #1e3a8a;
+            --rosa-claro: #eff6ff;
+            --lila: #0891b2;
+            --texto: #1e293b;
+            --borde: #cbd5e1;
+        }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: linear-gradient(135deg, #f1f5f9 0%, #eff6ff 55%, #ecfeff 100%);
+            color: var(--texto);
+        }
+        header {
+            background: linear-gradient(120deg, #0f172a, #1d4ed8, #0891b2);
+            color: white;
+            padding: 38px 20px;
+            text-align: center;
+            box-shadow: 0 8px 24px #1e40af26;
+        }
+        header h1 { margin: 0 0 10px; font-size: clamp(1.7rem, 4vw, 2.5rem); }
+        header p { margin: 0; color: #dbeafe; }
+        main { max-width: 1120px; margin: 30px auto; padding: 0 20px; }
+        section {
+            background: #ffffffed;
+            padding: 26px;
+            margin-bottom: 24px;
+            border: 1px solid #dbeafe;
+            border-radius: 20px;
+            box-shadow: 0 10px 28px #0f172a0c;
+        }
+        h2 { color: var(--rosa-oscuro); margin-top: 0; }
+        .introduccion { color: #475569; line-height: 1.65; }
+        .parametros {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+        .campo { display: flex; flex-direction: column; gap: 7px; }
+        label { font-size: 13px; font-weight: 700; color: #1e40af; }
+        input {
+            width: 100%; padding: 12px;
+            border: 1px solid var(--borde); border-radius: 10px;
+            font-size: 14px; color: var(--texto); background: #f8fafc;
+            transition: border-color .2s, box-shadow .2s;
+        }
+        input:focus {
+            outline: none; border-color: var(--rosa);
+            box-shadow: 0 0 0 3px #2563eb20; background: white;
+        }
+        button {
+            background: linear-gradient(120deg, #2563eb, #1e3a8a);
+            color: white; border: none; padding: 12px 20px;
+            border-radius: 11px; cursor: pointer; font-size: 14px;
+            font-weight: 700; transition: transform .15s, filter .15s;
+        }
+        button:hover { filter: brightness(1.04); transform: translateY(-1px); }
+        button:disabled { opacity: .65; cursor: wait; transform: none; }
+        .acciones { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+        .secundario { background: #0891b2; }
+        .terciario { background: #475569; }
+        .destacados {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;
+        }
+        .destacado {
+            padding: 16px; background: linear-gradient(145deg, #eff6ff, #ecfeff);
+            border: 1px solid #cbd5e1; border-radius: 13px; overflow-wrap: anywhere;
+        }
+        .destacado strong { display: block; margin-bottom: 8px; color: #1e40af; }
+        .valor { color: var(--rosa-oscuro); font-size: 20px; font-weight: 800; }
+        #resultado {
+            display: none; line-height: 1.7;
+            border: 2px solid #93c5fd;
+            background: linear-gradient(145deg, #ffffff, #eff6ff);
+        }
+        #resultado h2 { margin-bottom: 18px; }
+        #decisionFinal {
+            font-size: clamp(1.25rem, 3vw, 1.8rem);
+            color: var(--rosa-oscuro); margin: 8px 0 14px;
+        }
+        .dato-resultado {
+            padding: 14px 16px; margin: 10px 0;
+            background: #f1f5f9; border-radius: 12px;
+            border: 1px solid #cbd5e1;
+        }
+        .dato-resultado strong { color: #1e40af; }
+        #porcentajeFinal { font-size: 1.3rem; font-weight: 800; color: var(--rosa-oscuro); }
+        #estado { margin-top: 15px; white-space: pre-wrap; color: #475569; font-size: 14px; }
+        .aviso {
+            color: #854d0e; background: #fffbeb; border: 1px solid #fde68a;
+            padding: 14px; border-radius: 10px; font-size: 13px; line-height: 1.6;
+        }
+        footer { text-align: center; padding: 25px; color: #64748b; font-size: 13px; }
+        @media (max-width: 600px) {
+            main { padding: 0 12px; margin: 18px auto; }
+            section { padding: 18px; border-radius: 15px; }
+            .acciones button { width: 100%; }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>🩺 Sistema de análisis de características mamarias</h1>
+        
+    </header>
+
+    <main>
+        <section>
+            <h2>Características más relacionadas con el resultado</h2>
+            <p>
+                Estas son las características que mostraron mayor relación estadística con el diagnóstico en el análisis de los datos.
+            </p>
+
+            <div class="destacados" id="destacados">
+                Cargando características...
+            </div>
+        </section>
+
+        <section>
+            <h2>Ingreso manual de características</h2>
+            <p>
+                Completa las 30 características numéricas. Puedes escribir los valores manualmente, cargar un ejemplo o limpiar el formulario.
+            </p>
+
+            <form id="formulario">
+                <div class="parametros" id="campos">
+                    Preparando formulario...
+                </div>
+
+                <div class="acciones">
+                    <button type="submit" id="btnPredecir">
+                        Analizar características
+                    </button>
+
+                    <button type="button" class="secundario"
+                        id="btnEjemplo">
+                        Cargar ejemplo
+                    </button>
+                    <button type="button" class="secundario"
+                        id="btnLimpiar">
+                        Limpiar formulario
+                    </button>
+                </div>
+            </form>
+
+            <p id="estado" role="status"></p>
+        </section>
+
+        <section id="resultado">
+            <h2>Resultado de la consulta:</h2>
+            <h3 id="decisionFinal"></h3>
+            <div class="dato-resultado"><strong>Clasificación:</strong> <span id="clasificacion"></span></div>
+            <div class="dato-resultado"><strong>Porcentaje:</strong> <span id="porcentajeFinal"></span></div>
+            <p class="aviso">Este resultado es una estimación experimental del modelo y no constituye un diagnóstico médico.</p>
+        </section>
+    </main>
+
+    <footer>
+        Proyecto académico · Sistema de clasificación experimental
+    </footer>
+
+    <script>
+        const API = "http://127.0.0.1:8000";
+
+        // Correlaciones absolutas obtenidas en el notebook
+        const destacados = [
+            ["worst concave points", 0.793566],
+            ["worst perimeter", 0.782914],
+            ["mean concave points", 0.776614],
+            ["worst radius", 0.776454],
+            ["mean perimeter", 0.742636],
+            ["worst area", 0.733825],
+            ["mean radius", 0.730029],
+            ["mean area", 0.708984],
+            ["mean concavity", 0.696360],
+            ["worst concavity", 0.659610]
+        ];
+
+        // Valores de ejemplo del primer registro del conjunto de datos
+        const ejemplo = {
+            "mean radius": 17.99,
+            "mean texture": 10.38,
+            "mean perimeter": 122.8,
+            "mean area": 1001,
+            "mean smoothness": 0.1184,
+            "mean compactness": 0.2776,
+            "mean concavity": 0.3001,
+            "mean concave points": 0.1471,
+            "mean symmetry": 0.2419,
+            "mean fractal dimension": 0.07871,
+            "radius error": 1.095,
+            "texture error": 0.9053,
+            "perimeter error": 8.589,
+            "area error": 153.4,
+            "smoothness error": 0.006399,
+            "compactness error": 0.04904,
+            "concavity error": 0.05373,
+            "concave points error": 0.01587,
+            "symmetry error": 0.03003,
+            "fractal dimension error": 0.006193,
+            "worst radius": 25.38,
+            "worst texture": 17.33,
+            "worst perimeter": 184.6,
+            "worst area": 2019,
+            "worst smoothness": 0.1622,
+            "worst compactness": 0.6656,
+            "worst concavity": 0.7119,
+            "worst concave points": 0.2654,
+            "worst symmetry": 0.4601,
+            "worst fractal dimension": 0.1189
+        };
+
+        const formulario = document.getElementById("formulario");
+        const campos = document.getElementById("campos");
+        const estado = document.getElementById("estado");
+        const resultado = document.getElementById("resultado");
+        const btnPredecir = document.getElementById("btnPredecir");
+
+
+        const nombresEspanol = {
+            "mean radius": "Radio medio",
+            "mean texture": "Textura media",
+            "mean perimeter": "Perímetro medio",
+            "mean area": "Área media",
+            "mean smoothness": "Suavidad media",
+            "mean compactness": "Compacidad media",
+            "mean concavity": "Concavidad media",
+            "mean concave points": "Puntos cóncavos medios",
+            "mean symmetry": "Simetría media",
+            "mean fractal dimension": "Dimensión fractal media",
+            "radius error": "Error del radio",
+            "texture error": "Error de la textura",
+            "perimeter error": "Error del perímetro",
+            "area error": "Error del área",
+            "smoothness error": "Error de la suavidad",
+            "compactness error": "Error de la compacidad",
+            "concavity error": "Error de la concavidad",
+            "concave points error": "Error de los puntos cóncavos",
+            "symmetry error": "Error de la simetría",
+            "fractal dimension error": "Error de la dimensión fractal",
+            "worst radius": "Radio máximo",
+            "worst texture": "Textura máxima",
+            "worst perimeter": "Perímetro máximo",
+            "worst area": "Área máxima",
+            "worst smoothness": "Suavidad máxima",
+            "worst compactness": "Compacidad máxima",
+            "worst concavity": "Concavidad máxima",
+            "worst concave points": "Puntos cóncavos máximos",
+            "worst symmetry": "Simetría máxima",
+            "worst fractal dimension": "Dimensión fractal máxima"
+        };
+
+        function traducir(nombre) {
+            return nombresEspanol[nombre] || nombre;
+        }
+
+        let columnas = [];
+
+        // Mostrar las diez características más destacadas
+        function mostrarDestacados() {
+            const contenedor = document.getElementById("destacados");
+            contenedor.replaceChildren();
+
+            destacados.forEach(([nombre, valor]) => {
+                const tarjeta = document.createElement("div");
+                tarjeta.className = "destacado";
+
+                const titulo = document.createElement("strong");
+                titulo.textContent = traducir(nombre);
+
+                const correlacion = document.createElement("span");
+                correlacion.className = "valor";
+                correlacion.textContent = valor.toFixed(6);
+
+                const descripcion = document.createElement("div");
+                descripcion.textContent = "Relación estadística";
+
+                tarjeta.append(titulo, correlacion, descripcion);
+                contenedor.appendChild(tarjeta);
+            });
+        }
+
+        // Crear campos según los nombres que devuelve la API
+        function crearCampos() {
+            campos.replaceChildren();
+
+            columnas.forEach(nombre => {
+                const grupo = document.createElement("div");
+                grupo.className = "campo";
+
+                const etiqueta = document.createElement("label");
+                etiqueta.htmlFor = "p" + columnas.indexOf(nombre);
+                etiqueta.textContent = traducir(nombre);
+
+                const entrada = document.createElement("input");
+                entrada.id = etiqueta.htmlFor;
+                entrada.type = "number";
+                entrada.step = "any";
+                entrada.required = true;
+                entrada.name = nombre;
+                entrada.value = "";
+                entrada.placeholder = "Escribe un valor numérico";
+
+                grupo.append(etiqueta, entrada);
+                campos.appendChild(grupo);
+            });
+        }
+
+        // Consultar las características a la API
+        async function iniciar() {
+            mostrarDestacados();
+
+            try {
+                const respuesta = await fetch(`${API}/parametros`);
+
+                if (!respuesta.ok) {
+                    throw new Error("No se pudieron obtener los parámetros.");
+                }
+
+                const datos = await respuesta.json();
+                columnas = datos.parametros;
+                crearCampos();
+
+                estado.textContent =
+                    `API conectada. ${columnas.length} parámetros disponibles.`;
+            } catch (error) {
+                campos.textContent = "No se pudo conectar con el servicio de análisis.";
+                estado.textContent =
+                    "Verifica que el servicio esté iniciado en el puerto 8000. " +
+                    error.message;
+            }
+        }
+
+        // Cargar nuevamente los valores del ejemplo
+        document.getElementById("btnEjemplo").addEventListener("click", () => {
+            columnas.forEach((nombre, indice) => {
+                const entrada = document.getElementById("p" + indice);
+                entrada.value = ejemplo[nombre] ?? "";
+            });
+
+            resultado.style.display = "none";
+            estado.textContent = "Se cargaron los valores de ejemplo.";
+        });
+
+        // Limpiar todos los campos para permitir el ingreso manual desde cero
+        document.getElementById("btnLimpiar").addEventListener("click", () => {
+            columnas.forEach((nombre, indice) => {
+                const entrada = document.getElementById("p" + indice);
+                entrada.value = "";
+            });
+            resultado.style.display = "none";
+            estado.textContent = "Formulario limpio. Ingresa las 30 características manualmente.";
+            const primero = document.getElementById("p0");
+            if (primero) primero.focus();
+        });
+
+        // Enviar los datos introducidos a la API
+        formulario.addEventListener("submit", async evento => {
+            evento.preventDefault();
+
+            const parametros = {};
+
+            for (let indice = 0; indice < columnas.length; indice++) {
+                const nombre = columnas[indice];
+                const entrada = document.getElementById("p" + indice);
+                const valor = entrada.valueAsNumber;
+
+                if (!Number.isFinite(valor)) {
+                    entrada.focus();
+                    estado.textContent =
+                        `Escribe un número válido para ${traducir(nombre)}.`;
+                    return;
+                }
+
+                parametros[nombre] = valor;
+            }
+
+            btnPredecir.disabled = true;
+            estado.textContent = "Analizando los datos ingresados...";
+            resultado.style.display = "none";
+
+            try {
+                const respuesta = await fetch(`${API}/predecir`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ parametros })
+                });
+
+                const datos = await respuesta.json();
+
+                if (!respuesta.ok) {
+                    throw new Error(JSON.stringify(datos.detail ?? datos));
+                }
+
+                const clasePredicha = String(datos.resultado ?? "");
+                const esMaligno = clasePredicha.toLowerCase().includes("malign");
+                document.getElementById("decisionFinal").textContent = esMaligno
+                    ? "El modelo clasifica el caso como maligno"
+                    : "El modelo clasifica el caso como benigno";
+                document.getElementById("clasificacion").textContent = esMaligno
+                    ? "MALIGNA"
+                    : "BENIGNA";
+
+                const probabilidadesModelo = datos.probabilidades_estimadas ?? {};
+                const clavePredicha = Object.keys(probabilidadesModelo).find(
+                    clase => clase.toLowerCase() === clasePredicha.toLowerCase()
+                );
+                const porcentajePredicho = clavePredicha !== undefined
+                    ? Number(probabilidadesModelo[clavePredicha]) * 100
+                    : null;
+                document.getElementById("porcentajeFinal").textContent =
+                    porcentajePredicho !== null && Number.isFinite(porcentajePredicho)
+                        ? `${porcentajePredicho.toFixed(2)}%`
+                        : "No disponible";
+
+                resultado.style.display = "block";
+                estado.textContent = "Análisis completado.";
+            } catch (error) {
+                estado.textContent =
+                    "Error al consultar el servicio: " + error.message;
+            } finally {
+                btnPredecir.disabled = false;
+            }
+        });
+
+        iniciar();
+    </script>
+</body>
+</html>
